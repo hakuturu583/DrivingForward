@@ -1,0 +1,27 @@
+services:
+  drivingforward:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+    image: drivingforward:latest
+    container_name: drivingforward
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ..:/workspace/DrivingForward
+      - /mnt/sata_ssd/nuscenes_full/v1.0:/workspace/DrivingForward/input_data/nuscenes/v1.0:ro
+      - ../output:/workspace/DrivingForward/output
+    working_dir: /workspace/DrivingForward
+    environment:
+      - TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
+    tty: true
+    stdin_open: true
