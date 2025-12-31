@@ -13,3 +13,5 @@ weights_MF
 .cache
 .config
 .dgp
+
+torchscript

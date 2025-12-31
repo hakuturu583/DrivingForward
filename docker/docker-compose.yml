@@ -8,13 +8,17 @@ services:
         GID: "${GID:-1000}"
     image: drivingforward:latest
     container_name: drivingforward
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "0:0"
+    entrypoint: ["/workspace/DrivingForward/docker/entrypoint.sh"]
     volumes:
       - ..:/workspace/DrivingForward
       - /mnt/sata_ssd/nuscenes_full/v1.0:/workspace/DrivingForward/input_data/nuscenes
       - ../output:/workspace/DrivingForward/output
+      - ../torchscript:/workspace/DrivingForward/torchscript
     working_dir: /workspace/DrivingForward
     environment:
+      - UID=${UID:-1000}
+      - GID=${GID:-1000}
       - DGP_PATH=/workspace/DrivingForward
       - XDG_CACHE_HOME=/workspace/DrivingForward/.cache
       - XDG_CONFIG_HOME=/workspace/DrivingForward/.config

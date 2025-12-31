@@ -193,10 +193,15 @@ class PoseWrapper(nn.Module):
         super().__init__()
         self.pose_net = pose_net
 
-    def forward(self, cur_image, next_image):
+    def forward(self, cur_image, next_image, mask, k, inv_k, extrinsics, extrinsics_inv):
         inputs = {
             ("color_aug", 0, 0): cur_image,
             ("color_aug", 1, 0): next_image,
+            "mask": mask,
+            ("K", self.pose_net.fusion_level + 1): k,
+            ("inv_K", self.pose_net.fusion_level + 1): inv_k,
+            "extrinsics": extrinsics,
+            "extrinsics_inv": extrinsics_inv,
         }
         axis_angle, translation = self.pose_net(inputs, [0, 1], None)
         return axis_angle, translation
@@ -275,7 +280,15 @@ def export_mode(cfg, weight_path, out_dir, mode):
     pose_wrapper = PoseWrapper(pose_net).eval()
     pose_cur = torch.zeros(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 3, cfg["training"]["height"], cfg["training"]["width"])
     pose_next = torch.zeros_like(pose_cur)
-    traced_pose = torch.jit.trace(pose_wrapper, (pose_cur, pose_next))
+    pose_mask = torch.ones(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 1, cfg["training"]["height"], cfg["training"]["width"])
+    pose_k = torch.eye(3).view(1, 1, 3, 3).repeat(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 1, 1)
+    pose_inv_k = torch.eye(3).view(1, 1, 3, 3).repeat(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 1, 1)
+    pose_ext = torch.eye(4).view(1, 1, 4, 4).repeat(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 1, 1)
+    pose_ext_inv = torch.eye(4).view(1, 1, 4, 4).repeat(cfg["training"]["batch_size"], cfg["data"]["num_cams"], 1, 1)
+    traced_pose = torch.jit.trace(
+        pose_wrapper,
+        (pose_cur, pose_next, pose_mask, pose_k, pose_inv_k, pose_ext, pose_ext_inv),
+    )
 
     os.makedirs(out_dir, exist_ok=True)
     torch.jit.save(traced_depth_encoder, os.path.join(out_dir, f"depth_encoder_{mode}.pt"))
