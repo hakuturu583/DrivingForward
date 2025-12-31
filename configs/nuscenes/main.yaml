@@ -80,7 +80,7 @@ eval:
   eval_min_depth: 0
   eval_max_depth: 80
   eval_visualize: False
-  save_images: False
+  save_images: True
   save_path: './results/images'
   
 load:

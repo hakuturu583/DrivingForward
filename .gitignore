@@ -9,3 +9,7 @@ results
 weights_SF
 weights_MF
 *.pyc
+
+.cache
+.config
+.dgp

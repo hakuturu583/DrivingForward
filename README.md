@@ -47,6 +47,42 @@ pip install submodules/diff-gaussian-rasterization
 cd ../../..
 ```
 
+### Docker
+
+If you use the Docker setup in `docker/`, you can put the following in a `.env` file at the repository root to avoid passing UID/GID every time:
+
+```
+UID=1000
+GID=1000
+```
+
+To build and launch the container with Docker Compose:
+
+```
+docker compose -f docker/docker-compose.yml build
+docker compose -f docker/docker-compose.yml run --rm drivingforward
+```
+
+The compose file mounts the nuScenes dataset from `/mnt/sata_ssd/nuscenes_full/v1.0` to `input_data/nuscenes/v1.0` (read-only) and writes outputs to `./output`.
+
+### Sequence Rendering
+
+To render a continuous sequence in eval order and save images, use `render_sequence.py`:
+
+```
+python -W ignore render_sequence.py \
+  --weight_path ./weights_SF \
+  --novel_view_mode SF \
+  --output_dir ./results/sequence \
+  --save_gt
+```
+
+Options:
+```
+--max_frames N   # render only N frames (0 = all)
+--stride N       # render every Nth frame
+```
+
 ## Datasets
 
 ### nuScenes 

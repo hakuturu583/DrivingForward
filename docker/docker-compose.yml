@@ -11,10 +11,14 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ..:/workspace/DrivingForward
-      - /mnt/sata_ssd/nuscenes_full/v1.0:/workspace/DrivingForward/input_data/nuscenes/v1.0:ro
+      - /mnt/sata_ssd/nuscenes_full/v1.0:/workspace/DrivingForward/input_data/nuscenes
       - ../output:/workspace/DrivingForward/output
     working_dir: /workspace/DrivingForward
     environment:
+      - DGP_PATH=/workspace/DrivingForward
+      - XDG_CACHE_HOME=/workspace/DrivingForward/.cache
+      - XDG_CONFIG_HOME=/workspace/DrivingForward/.config
+      - MPLCONFIGDIR=/workspace/DrivingForward/.config/matplotlib
       - TORCH_CUDA_ARCH_LIST=7.5;8.0;8.6
     deploy:
       resources:
@@ -25,3 +29,4 @@ services:
               capabilities: ["gpu"]
     tty: true
     stdin_open: true
+    shm_size: "24gb"
