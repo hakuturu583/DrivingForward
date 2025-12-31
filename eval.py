@@ -78,13 +78,30 @@ class TorchScriptDepthNet(torch.nn.Module):
         extrinsics = inputs["extrinsics"]
         extrinsics_inv = inputs["extrinsics_inv"]
 
-        disp_cur, img_feat_cur = self._run_one(images, mask, k, inv_k, extrinsics, extrinsics_inv)
-
         if self.mode == "MF":
             images_last = inputs[("color_aug", -1, 0)]
             images_next = inputs[("color_aug", 1, 0)]
-            disp_last, img_feat_last = self._run_one(images_last, mask, k, inv_k, extrinsics, extrinsics_inv)
-            disp_next, img_feat_next = self._run_one(images_next, mask, k, inv_k, extrinsics, extrinsics_inv)
+            enc_out = self.depth_encoder(
+                images,
+                images_last,
+                images_next,
+                mask,
+                k,
+                inv_k,
+                extrinsics,
+                extrinsics_inv,
+            )
+            feat0, feat1, proj_feat, img_feat0, img_feat1, img_feat2 = enc_out[:6]
+            feat0_last, feat1_last, proj_feat_last, img_feat0_last, img_feat1_last, img_feat2_last = enc_out[6:12]
+            feat0_next, feat1_next, proj_feat_next, img_feat0_next, img_feat1_next, img_feat2_next = enc_out[12:18]
+            disp_cur = self.depth_decoder(feat0, feat1, proj_feat)
+            disp_last = self.depth_decoder(feat0_last, feat1_last, proj_feat_last)
+            disp_next = self.depth_decoder(feat0_next, feat1_next, proj_feat_next)
+            img_feat_cur = (img_feat0, img_feat1, img_feat2)
+            img_feat_last = (img_feat0_last, img_feat1_last, img_feat2_last)
+            img_feat_next = (img_feat0_next, img_feat1_next, img_feat2_next)
+        else:
+            disp_cur, img_feat_cur = self._run_one(images, mask, k, inv_k, extrinsics, extrinsics_inv)
 
         for cam in range(self.num_cams):
             outputs[("cam", cam)][("disp", 0)] = disp_cur[:, cam, ...]
