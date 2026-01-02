@@ -37,8 +37,10 @@ data:
 
 training:
   # basic
-  height: 352
-  width: 640
+  # height: 352
+  # width: 640
+  height: 176
+  width: 320
   scales: [0] 
   frame_ids: [0, -1, 1]
   
