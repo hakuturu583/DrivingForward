@@ -1,4 +1,3 @@
-import os
 import torch
 
 from .drivingforward_model import DrivingForwardModel
@@ -21,32 +20,6 @@ class DepthGuidedDrivingForwardModel(DrivingForwardModel):
             self.depth_anything_coeff = 1.0
         if not hasattr(self, "da3_image_key"):
             self.da3_image_key = ("color", 0, 0)
-        if not hasattr(self, "depth_guided_init_weight"):
-            self.depth_guided_init_weight = True
-        if not hasattr(self, "depth_guided_init_weight_dir"):
-            self.depth_guided_init_weight_dir = None
-        if not hasattr(self, "depth_guided_init_weight_models"):
-            self.depth_guided_init_weight_models = ["depth_net", "gs_net"]
-
-        if self.rank == 0 and self.depth_guided_init_weight:
-            self._init_from_drivingforward_weights()
-
-    def _init_from_drivingforward_weights(self):
-        if not self.depth_guided_init_weight_dir:
-            raise ValueError("depth_guided_init_weight_dir is required for depth-guided init.")
-        if not os.path.isdir(self.depth_guided_init_weight_dir):
-            raise ValueError(
-                f"depth_guided_init_weight_dir not found: {self.depth_guided_init_weight_dir}"
-            )
-        prev_dir = getattr(self, "load_weights_dir", None)
-        prev_models = getattr(self, "models_to_load", None)
-        self.load_weights_dir = self.depth_guided_init_weight_dir
-        self.models_to_load = list(self.depth_guided_init_weight_models)
-        self.load_weights()
-        if prev_dir is not None:
-            self.load_weights_dir = prev_dir
-        if prev_models is not None:
-            self.models_to_load = prev_models
 
     def prepare_model(self, cfg, rank):
         models = {

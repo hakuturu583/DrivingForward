@@ -5,7 +5,7 @@ ddp:
   
 model:
   # mode: 'MF' or 'SF'
-  novel_view_mode: 'MF'
+  novel_view_mode: 'SF'
   model_type: 'depth_guided'
 
   num_layers: 18
@@ -88,9 +88,6 @@ load:
   pretrain: False
   models_to_load: ['depth_net', 'gs_net']
   load_dir: path to weights directory
-  depth_guided_init_weight: True
-  depth_guided_init_weight_dir: path to drivingforward weights directory
-  depth_guided_init_weight_models: ['depth_net', 'gs_net']
   
 logging:
   early_phase: 5000
