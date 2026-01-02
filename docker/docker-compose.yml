@@ -12,7 +12,7 @@ services:
     entrypoint: ["/workspace/DrivingForward/docker/entrypoint.sh"]
     volumes:
       - ..:/workspace/DrivingForward
-      - /mnt/sata_ssd/nuscenes_full/v1.0:/workspace/DrivingForward/input_data/nuscenes
+      - ${NUSCENES_DATAROOT}:/workspace/DrivingForward/input_data/nuscenes
       - ../output:/workspace/DrivingForward/output
       - ../torchscript:/workspace/DrivingForward/torchscript
     working_dir: /workspace/DrivingForward
