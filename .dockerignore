@@ -1,28 +1,12 @@
-.git
-.gitignore
-.vscode
-.idea
-.cache
-.config
-.local
-.DS_Store
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-*.swp
-.mypy_cache
-.pytest_cache
-.ruff_cache
-.venv
-venv
-env
-input_data
-output
-results
-torchscript
-weights
-weights_*
-*.pt
-*.pth
-*.ckpt
+# Ignore everything by default to minimize build context
+**
+
+# Keep Docker build files
+!docker/Dockerfile
+!docker/entrypoint.sh
+
+# Keep only the rasterizer submodule needed for build
+!models/gaussian/gaussian-splatting/submodules/diff-gaussian-rasterization/**
+
+# Keep requirements for build-time install
+!requirements.txt

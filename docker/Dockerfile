@@ -30,13 +30,16 @@ RUN groupadd -g ${GID} ${USERNAME} \
 
 WORKDIR /workspace/DrivingForward
 
-COPY requirements.txt ./requirements.txt
-
 RUN python3.8 -m pip install --upgrade pip \
-    && python3.8 -m pip install torch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 --index-url https://download.pytorch.org/whl/cu113 \
-    && python3.8 -m pip install -r requirements.txt
+    && python3.8 -m pip install torch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 --index-url https://download.pytorch.org/whl/cu113
 
-COPY . .
+# Install Python dependencies at build time
+COPY requirements.txt ./requirements.txt
+RUN python3.8 -m pip install -r requirements.txt
+
+# Only copy the gaussian rasterizer submodule to speed up builds.
+COPY models/gaussian/gaussian-splatting/submodules/diff-gaussian-rasterization \
+     models/gaussian/gaussian-splatting/submodules/diff-gaussian-rasterization
 
 ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6"
 RUN python3.8 -m pip install models/gaussian/gaussian-splatting/submodules/diff-gaussian-rasterization
