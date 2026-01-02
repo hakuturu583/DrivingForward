@@ -1,4 +1,8 @@
+import inspect
+import importlib
+
 import torch
+import torch.nn.functional as F
 
 from .base_loss import BaseLoss
 
@@ -12,6 +16,9 @@ class DepthAnythingLoss(BaseLoss):
     def __init__(self, cfg, rank):
         super().__init__(cfg, rank)
         self.trim_ratio = 0.1
+        self.da3_variant = getattr(self, "da3_variant", "metric-large")
+        self.da3_weights_path = getattr(self, "da3_weights_path", None)
+        self._da3_model = None
 
     def _ensure_4d(self, depth):
         if depth.dim() == 2:
@@ -59,10 +66,114 @@ class DepthAnythingLoss(BaseLoss):
         )
         return normalized
 
-    def forward(self, da_depth, pred_depth):
+    def _resolve_da3_model(self):
+        if self._da3_model is not None:
+            return self._da3_model
+
+        candidates = [
+            ("depth_anything_3", ["DepthAnything3", "DepthAnythingV3", "DepthAnything"]),
+            ("depth_anything_3.dpt", ["DepthAnything3", "DepthAnythingV3", "DepthAnything"]),
+            ("depth_anything_3.model", ["DepthAnything3", "DepthAnythingV3", "DepthAnything"]),
+            ("depth_anything_3.depth_anything", ["DepthAnything3", "DepthAnythingV3", "DepthAnything"]),
+        ]
+        for module_name, class_names in candidates:
+            try:
+                module = importlib.import_module(module_name)
+            except ModuleNotFoundError:
+                continue
+            for class_name in class_names:
+                model_cls = getattr(module, class_name, None)
+                if model_cls is None:
+                    continue
+                model = self._instantiate_model(model_cls)
+                self._da3_model = model
+                return model
+
+        factory_candidates = [
+            ("depth_anything_3", ["create_model", "build_model", "get_model", "load_model"]),
+        ]
+        for module_name, func_names in factory_candidates:
+            try:
+                module = importlib.import_module(module_name)
+            except ModuleNotFoundError:
+                continue
+            for func_name in func_names:
+                factory = getattr(module, func_name, None)
+                if factory is None:
+                    continue
+                model = self._instantiate_factory(factory)
+                self._da3_model = model
+                return model
+
+        raise ImportError(
+            "DepthAnything3 module not found. Install depth-anything-3 or "
+            "provide a supported module path."
+        )
+
+    def _instantiate_model(self, model_cls):
+        init = model_cls.__init__
+        sig = inspect.signature(init)
+        kwargs = {}
+        for key in ("variant", "model", "encoder", "mode", "name"):
+            if key in sig.parameters:
+                kwargs[key] = self.da3_variant
+                break
+        model = model_cls(**kwargs) if kwargs else model_cls()
+        self._load_weights_if_needed(model)
+        return model
+
+    def _instantiate_factory(self, factory):
+        sig = inspect.signature(factory)
+        kwargs = {}
+        for key in ("variant", "model", "encoder", "mode", "name"):
+            if key in sig.parameters:
+                kwargs[key] = self.da3_variant
+                break
+        model = factory(**kwargs) if kwargs else factory()
+        self._load_weights_if_needed(model)
+        return model
+
+    def _load_weights_if_needed(self, model):
+        if not self.da3_weights_path:
+            return
+        state = torch.load(self.da3_weights_path, map_location="cpu")
+        if isinstance(state, dict) and "state_dict" in state:
+            state = state["state_dict"]
+        model.load_state_dict(state, strict=False)
+
+    def _infer_depth(self, images):
+        model = self._resolve_da3_model()
+        device = images.device
+        if hasattr(model, "to"):
+            model = model.to(device)
+        model.eval()
+
+        with torch.no_grad():
+            if hasattr(model, "infer_image"):
+                depth = model.infer_image(images)
+            else:
+                depth = model(images)
+
+        if isinstance(depth, (list, tuple)):
+            depth = depth[0]
+        if isinstance(depth, dict):
+            depth = depth.get("depth", depth.get("pred", depth.get("output")))
+        if depth is None:
+            raise RuntimeError("DepthAnything3 inference returned no depth output.")
+        if depth.dim() == 3:
+            depth = depth.unsqueeze(1)
+        return depth
+
+    def forward(self, images, pred_depth):
         """
-        Compute log-scale L1 loss between DA3 depth and predicted depth.
+        Compute log-scale L1 loss between DA3 depth (from images) and predicted depth.
         """
+        if images.dim() != 4:
+            raise ValueError(f"Expected images in BCHW format, got {tuple(images.shape)}")
+        if images.shape[-2:] != pred_depth.shape[-2:]:
+            images = F.interpolate(images, size=pred_depth.shape[-2:], mode="bilinear", align_corners=False)
+
+        da_depth = self._infer_depth(images)
         da_norm = self._trim_and_normalize(da_depth)
         pred_norm = self._trim_and_normalize(pred_depth)
 
