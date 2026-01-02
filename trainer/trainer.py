@@ -7,6 +7,7 @@ import torch.distributed as dist
 from torch import Tensor
 
 from utils import Logger
+from models import DrivingForwardModel, DepthGuidedDrivingForwardModel
 
 from lpips import LPIPS
 from jaxtyping import Float, UInt8
@@ -26,6 +27,15 @@ FloatImage = Union[
     Float[Tensor, "channel height width"],
     Float[Tensor, "batch channel height width"],
 ]
+
+def build_model(cfg, rank):
+    model_type = cfg.get('model', {}).get('model_type', 'drivingforward')
+    model_type = model_type.lower()
+    if model_type in ('drivingforward', 'drivingforwardmodel', 'default'):
+        return DrivingForwardModel(cfg, rank)
+    if model_type in ('depth_guided', 'depthguided', 'depth_guided_drivingforward'):
+        return DepthGuidedDrivingForwardModel(cfg, rank)
+    raise ValueError(f"Unknown model_type: {model_type}")
 
 class DrivingForwardTrainer:
     """

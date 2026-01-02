@@ -1,3 +1,3 @@
-from .trainer import DrivingForwardTrainer
+from .trainer import DrivingForwardTrainer, build_model
 
-__all__ = ['DrivingForwardTrainer']
+__all__ = ['DrivingForwardTrainer', 'build_model']
