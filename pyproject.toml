@@ -3,7 +3,7 @@ name = "drivingforward"
 version = "0.0.0"
 description = "Feed-forward 3D Gaussian Splatting for Driving Scene Reconstruction from Flexible Surround-view Input"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
   "anyio==4.5.2",
   "argon2-cffi==23.1.0",
@@ -25,8 +25,9 @@ dependencies = [
   "comm==0.2.2",
   "cycler==0.12.1",
   "debugpy==1.8.7",
-  "decorator==5.1.1",
+  "decorator==4.4.2",
   "defusedxml==0.7.1",
+  "depth-anything-3",
   "descartes==1.1.0",
   "diskcache==5.6.3",
   "e3nn==0.4.0",
@@ -178,6 +179,9 @@ environments = [
 [[tool.uv.index]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
+
+[tool.uv.sources]
+depth-anything-3 = { git = "https://github.com/ByteDance-Seed/Depth-Anything-3.git" }
 
 [dependency-groups]
 torch-cu124 = [
